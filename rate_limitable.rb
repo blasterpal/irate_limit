@@ -5,15 +5,25 @@ module RateLimitable
   end
 
   def initialize(*args)
-    self._collect_limits
+    self._collect_limits if @deferred
     super(*args)
   end
 
-  # register the methods
+  ## register the methods
   def rate_limit(methud,options={})
+    @deferred = true 
     @_limits ||= {}
     @_limits[methud.to_sym] = options
     p "limits supplied: #{options}"
+  end
+  
+  # non-deferred, in-line
+  def in_line_rate_limit(methud,options={})
+      @deferred = false
+      max = options.delete(:max)
+      window = options.delete(:window)
+      scope = options.delete(:scope) || 'global'
+      _setup_limit(methud,max,window,scope)
   end
   
   def _collect_limits
@@ -36,6 +46,8 @@ module RateLimitable
           self.send "_rate_limit_#{methud}".to_sym(*args)
         end
       end
+  rescue NameError => e
+    p "Unable to setup limit, method not found: #{e}"
   end
 
 end
